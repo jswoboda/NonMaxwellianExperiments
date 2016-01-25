@@ -11,7 +11,7 @@ from RadarDataSim.radarData import lagdict2ionocont
 from RadarDataSim.utilFunctions import makeparamdicts, makesumrule, makeconfigfile
 from RadarDataSim.IonoContainer import IonoContainer
 from RadarDataSim.const.physConstants import v_Boltz
-
+import pdb
 def SRIparams2iono(filename):
 
     fullfile = h5file(filename)
@@ -138,7 +138,6 @@ def SRIACF2iono(flist):
                 acf_pint_sum = acf_pint_sum+acf_pint
                 noise_data_sum = noise_data_sum+ noise_data
                 noise_pint_sum = noise_pint_sum + noise_pint
-
         if iflistn==0:
 
             acf_acum=acfs_sum.copy()
@@ -186,7 +185,7 @@ def SRIACF2iono(flist):
     simparams['Rangegates'] =rng_vec
     simparams['Rangegatesfinal']=rng_vec[minrg:maxrg]
 
-    ionolag, ionosigs = lagdict2ionocont(DataLags,NoiseLags,sensdict,simparams,time)
+    ionolag, ionosigs = lagdict2ionocont(DataLags,NoiseLags,sensdict,simparams,Time_acum)
 
     return (ionolag,ionosigs,simparams,sensdict)
 
