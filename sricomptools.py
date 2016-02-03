@@ -51,6 +51,7 @@ def SRIparams2iono(filename):
     all_loc = all_loc[lkeep]
     Velocity = Velocity[lkeep]
     param_lists = param_lists[lkeep]
+    all_loc[:,0]=all_loc[:,0]*1e-3
     iono1 = IonoContainer(all_loc,param_lists,times=time,ver = 1,coordvecs = ['r','theta','phi'],
                           paramnames = pnames,species=species,velocity=Velocity)
                           

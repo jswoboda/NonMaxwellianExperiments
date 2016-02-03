@@ -14,8 +14,8 @@ def runsims(fitdir,simdir,configfile):
     fitconfig = os.path.join(fitdir,configfile)
     runmain(['fitting'],fitdir,fitconfig,False)
     
-#    simconfig = os.path.join(simdir,configfile)
-#    simlist = [ 'radardata', 'fitting']
-#    runmain(simlist,simdir,simconfig,True)
+    simconfig = os.path.join(simdir,configfile)
+    simlist = [ 'radardata', 'fitting']
+    runmain(simlist,simdir,simconfig,True)
     
     
