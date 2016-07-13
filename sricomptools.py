@@ -71,8 +71,25 @@ def SRIparams2iono(filename):
                           paramnames = pnames,species=species)
     return iono1,ionoS
 
+def SRIRAW2iono(flist):
+    for iflistn, iflist in enumerate(flist):
 
+        for ifile,filename in enumerate(iflist):
+            fullfile = h5file(filename)
+            fullfiledict = fullfile.readWholeh5file()
+
+            if fullfiledict['/Site']['Name'] =='Resolute North':
+                radarname='risr'
+            else:
+                radarname='pfisr'
+            Pcal=fullfiledict['/Rx']['Bandwidth']*fullfiledict['/Rx']['CalTemp']*v_Boltz
+
+            bco = fullfiledict['/S/Data']['Beamcodes']
+            beamlist = bco[0]
+            time= fullfiledict['/Time']['UnixTime']
+    
 def SRIACF2iono(flist):
+    """ This will take the ACF files and save them as Ionofiles"""
     for iflistn, iflist in enumerate(flist):
 
         for ifile,filename in enumerate(iflist):
