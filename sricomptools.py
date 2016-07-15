@@ -72,22 +72,61 @@ def SRIparams2iono(filename):
     return iono1,ionoS
 
 def SRIRAW2iono(flist):
-    for iflistn, iflist in enumerate(flist):
+   
 
-        for ifile,filename in enumerate(iflist):
-            fullfile = h5file(filename)
-            fullfiledict = fullfile.readWholeh5file()
+    for ifile,filename in enumerate(flist):
+        fullfile = h5file(filename)
+        fullfiledict = fullfile.readWholeh5file()
 
-            if fullfiledict['/Site']['Name'] =='Resolute North':
-                radarname='risr'
-            else:
-                radarname='pfisr'
+        if fullfiledict['/Site']['Name'] =='Resolute North':
+            radarname='risr'
+            Pcal=fullfiledict['/Rx']['Bandwidth']*fullfiledict['/Rx']['CalTemp']*v_Boltz
+        else:
+            radarname='pfisr'
             Pcal=fullfiledict['/Rx']['Bandwidth']*fullfiledict['/Rx']['CalTemp']*v_Boltz
 
-            bco = fullfiledict['/S/Data']['Beamcodes']
-            beamlist = bco[0]
-            time= fullfiledict['/Time']['UnixTime']
-    
+        bco = fullfiledict['/S/Data']['Beamcodes']
+        beamlist = bco[0]
+        time= fullfiledict['/Time']['UnixTime']
+
+        fullfile = h5file(fname)
+        fullfiledict = fullfile.readWholeh5file()
+        print('Main file being operated on: '+os.path.split(fname)[-1])
+        # pull content that will be deleted
+        all_data = fullfiledict['/Raw11/Raw/Samples']['Data']
+        rawsamps = all_data[:,:,:,0]+1j*all_data[:,:,:,1]
+        rng = fullfiledict['/S/Data/Acf']['Range']
+        all_beams_mat = fullfiledict['/Raw11/Raw/RadacHeader']['BeamCode']
+        
+        txbaud = fullfiledict['/S/Data']['TxBaud']
+        ambfunc = fullfiledict['/S/Data']['Ambiguity']
+        pwidth = fullfiledict['/S/Data']['Pulsewidth']
+        
+        # Pull in call and noise material because these will needed for fitting
+        beamcodes_cal = fullfiledict['/S/Cal']['Beamcodes']
+        beamcodes_noise = fullfiledict['/S/Noise']['Beamcodes']
+        cal_pint = fullfiledict['/S/Cal']['PulsesIntegrated']
+        caldata = fullfiledict['/S/Cal/Power']['Data']
+        noise_pint = fullfiledict['/S/Noise']['PulsesIntegrated']
+        noise_pwer = fullfiledict['/S/Noise/Power']['Data']
+        noise_data =fullfiledict['/S/Noise/Acf']['Data']
+        noise_acf = noise_data[:,:,:,:,0]+1j*noise_data[:,:,:,:,1]
+        noise_acf2 = sp.transpose(noise_acf,(0,1,3,2))
+        
+        # use median to avoid large jumps. The difference between the mean and median estimator
+        # goes to zero after enough pulses have been originally integrated. From what Im seeing you're
+        # close to 64 you should be fine.
+        n_pow_e = sp.nanmedian(noise_pwer,axis=-1)/noise_pint
+        
+        c_pow_e = sp.nanmedian(caldata,axis=-1)/cal_pint
+
+        # Need to adjust for cal and noise
+        powmult = Pcal/(c_pow_e-n_pow_e)
+
+        datamult = sp.zeros_like(rawsamps)
+
+        for irec,ibeamlist in enumerate(
+        
 def SRIACF2iono(flist):
     """ This will take the ACF files and save them as Ionofiles"""
     for iflistn, iflist in enumerate(flist):
@@ -173,7 +212,7 @@ def SRIACF2iono(flist):
     DataLags = {'ACF':acf_acum,'Pow':acf_acum[:,:,:,0].real,'Pulses':acf_pint_acum,'Time':Time_acum}
     NoiseLags = {'ACF':noise_data_acum,'Pow':noise_data_acum[:,:,:,0].real,'Pulses':noise_pint_acum,'Time':Time_acum}
 
-    rng_vec = acfrng
+    rng_vec = acfrng*1e-3
     ts = fullfiledict['/Rx']['SampleTime']
     sumrule = makesumrule('long',fullfiledict['/S/Data']['Pulsewidth'],ts)
     minrg = -sumrule[0].min()
