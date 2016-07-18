@@ -73,8 +73,9 @@ def SRIparams2iono(filename):
 
 def SRIRAW2iono(flist):
    
-
+    pulsetimes=[]
     for ifile,filename in enumerate(flist):
+        outdict={}
         fullfile = h5file(filename)
         fullfiledict = fullfile.readWholeh5file()
 
@@ -94,7 +95,9 @@ def SRIRAW2iono(flist):
         print('Main file being operated on: '+os.path.split(fname)[-1])
         # pull content that will be deleted
         all_data = fullfiledict['/Raw11/Raw/Samples']['Data']
+        pulse_times = fullfiledict['/Raw11/Raw/RadacHeader']['RadacTime']
         rawsamps = all_data[:,:,:,0]+1j*all_data[:,:,:,1]
+        (nrecs,  np_rec,nrng)=rawsamps.shape
         rng = fullfiledict['/S/Data/Acf']['Range']
         all_beams_mat = fullfiledict['/Raw11/Raw/RadacHeader']['BeamCode']
         
@@ -112,6 +115,7 @@ def SRIRAW2iono(flist):
         noise_data =fullfiledict['/S/Noise/Acf']['Data']
         noise_acf = noise_data[:,:,:,:,0]+1j*noise_data[:,:,:,:,1]
         noise_acf2 = sp.transpose(noise_acf,(0,1,3,2))
+        (nbeams,nnrng,nlags)=noise_acf2.shape[1:]
         
         # use median to avoid large jumps. The difference between the mean and median estimator
         # goes to zero after enough pulses have been originally integrated. From what Im seeing you're
@@ -122,10 +126,24 @@ def SRIRAW2iono(flist):
 
         # Need to adjust for cal and noise
         powmult = Pcal/(c_pow_e-n_pow_e)
-
+        noise_mult = sp.tile(powmult[:,:,sp.newaxis,sp.newaxis],noise_acf2.shape[2:])
+        noise_acf_out = noise_acf2*noisemult
         datamult = sp.zeros_like(rawsamps)
+        
+        for irec,ibeamlist in enumerate(beamcodes_cal):
+            for ibpos,ibeam in enumerate(ibeamlist):
+                b_idx = sp.where(ibeam==all_beams_mat[irec])[0]
+                datamult[irec,b_idx]=sp.sqrt(powmult[irec,ibeam])
 
-        for irec,ibeamlist in enumerate(
+        outraw== rawsamps*datamult
+        
+        outdict['RawData']=outraw.reshape(nrecs*np_rec,nrng)
+        outdict['RawDatanonoise'] = outdict['RawData']
+        outdict['AddedNoise'] = (1./sp.sqrt(2.))*(sp.randn(outdict['RawData'].shape)+1j*sp.randn(outdict['RawData'].shape))
+        outdict['NoiseData'] = noise_acf_out.reshape(nrecs*nbeams,nnrng,nlags)
+        outdict['Pulses']=
+        outdict['Beams']= all_beams_mat.reshape(nrecs*np_rec)
+        outdict['Time'] = pulse_times.reshape(nrecs*np_rec)
         
 def SRIACF2iono(flist):
     """ This will take the ACF files and save them as Ionofiles"""
