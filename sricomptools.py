@@ -75,6 +75,14 @@ def SRIRAW2iono(flist,outdir):
     """ 
         This will take a list of files and save out radar data
     """
+
+    # make directory structure
+    if not os.path.isdir(outdir):
+        os.mkdir(outdir)
+    radardatdir = os.path.join(outdir,'Radardata')
+
+    if not  os.path.isdir(radardatadir):
+        os.mkdir(radardatadir)
     pulsetimes=[]
     outfilelist = []
     pulsenumbers = []
@@ -163,7 +171,7 @@ def SRIRAW2iono(flist,outdir):
         outdict['Pulses']= pulsen
 
         fname = '{0:d} RawData.h5'.format(ifile)
-        newfn = os.path.join(outdir,fname)
+        newfn = os.path.join(radardatadir,fname)
         outfilelist.append(newfn)
         pulsetimes.append(timep)
         pulsenumbers.append(pulsen)
@@ -198,10 +206,10 @@ def SRIRAW2iono(flist,outdir):
                    'ambupsamp':1, # up sampling factor for ambiguity function
                    'species':['O+','e-'], # type of ion species used in simulation
                    'numpoints':128} # number of points for each spectrum
-
+    makeconfigfile(os.path.join(outdir,beamlist,radarname,simparams)
     (sensdict,simparams) = makeparamdicts(beamlist,radarname,simparams)
-    simparams['Rangegates'] =rng_vec
-    simparams['Rangegatesfinal']=rng_vec[minrg:maxrg]
+#    simparams['Rangegates'] =rng_vec
+#    simparams['Rangegatesfinal']=rng_vec[minrg:maxrg]
 
 def SRIACF2iono(flist):
     """ This will take the ACF files and save them as Ionofiles"""
