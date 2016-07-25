@@ -8,10 +8,11 @@ import glob,os
 from ioclass import h5file
 import scipy as sp
 from RadarDataSim.radarData import lagdict2ionocont
-from RadarDataSim.utilFunctions import makeparamdicts, makesumrule, makeconfigfile
+from RadarDataSim.utilFunctions import makeparamdicts, makesumrule, makeconfigfile, dict2h5
 from RadarDataSim.IonoContainer import IonoContainer
 from RadarDataSim.const.physConstants import v_Boltz
 import pdb
+
 def SRIparams2iono(filename):
 
     fullfile = h5file(filename)
@@ -79,7 +80,7 @@ def SRIRAW2iono(flist,outdir):
     # make directory structure
     if not os.path.isdir(outdir):
         os.mkdir(outdir)
-    radardatdir = os.path.join(outdir,'Radardata')
+    radardatadir = os.path.join(outdir,'Radardata')
 
     if not os.path.isdir(radardatadir):
         os.mkdir(radardatadir)
@@ -104,23 +105,24 @@ def SRIRAW2iono(flist,outdir):
         if ifile==0:
             bstart = sp.zeros(len(beamlist),dtype=sp.int32)
         time= fullfiledict['/Time']['UnixTime']
-
-        fullfile = h5file(fname)
+#
+        fullfile = h5file(filename)
         fullfiledict = fullfile.readWholeh5file()
-        print('Main file being operated on: '+os.path.split(fname)[-1])
+        print('Main file being operated on: '+os.path.split(filename)[-1])
         # pull content that will be deleted
         all_data = fullfiledict['/Raw11/Raw/Samples']['Data']
         pulse_times = fullfiledict['/Raw11/Raw/RadacHeader']['RadacTime']
         rawsamps = all_data[:,:,:,0]+1j*all_data[:,:,:,1]
         (nrecs,  np_rec,nrng)=rawsamps.shape
         rng = fullfiledict['/S/Data/Acf']['Range']
+        acfrng = fullfiledict['/S/Data/Acf']['Range'].flatten()
         all_beams_mat = fullfiledict['/Raw11/Raw/RadacHeader']['BeamCode']
-        
+#        
         txbaud = fullfiledict['/S/Data']['TxBaud']
         ambfunc = fullfiledict['/S/Data']['Ambiguity']
         pwidth = fullfiledict['/S/Data']['Pulsewidth']
-        
-        # Pull in call and noise material because these will needed for fitting
+#        
+#        # Pull in call and noise material because these will needed for fitting
         beamcodes_cal = fullfiledict['/S/Cal']['Beamcodes']
         beamcodes_noise = fullfiledict['/S/Noise']['Beamcodes']
         cal_pint = fullfiledict['/S/Cal']['PulsesIntegrated']
@@ -131,7 +133,7 @@ def SRIRAW2iono(flist,outdir):
         noise_acf = noise_data[:,:,:,:,0]+1j*noise_data[:,:,:,:,1]
         noise_acf2 = sp.transpose(noise_acf,(0,1,3,2))
         (nbeams,nnrng,nlags)=noise_acf2.shape[1:]
-        
+#        
         # use median to avoid large jumps. The difference between the mean and median estimator
         # goes to zero after enough pulses have been originally integrated. From what Im seeing you're
         # close to 64 you should be fine.
@@ -142,13 +144,13 @@ def SRIRAW2iono(flist,outdir):
         # Need to adjust for cal and noise
         powmult = Pcal/(c_pow_e-n_pow_e)
         noise_mult = sp.tile(powmult[:,:,sp.newaxis,sp.newaxis],noise_acf2.shape[2:])
-        noise_acf_out = noise_acf2*noisemult
+        noise_acf_out = noise_acf2*noise_mult
         datamult = sp.zeros_like(rawsamps)
         
         for irec,ibeamlist in enumerate(beamcodes_cal):
             for ibpos,ibeam in enumerate(ibeamlist):
                 b_idx = sp.where(ibeam==all_beams_mat[irec])[0]
-                datamult[irec,b_idx]=sp.sqrt(powmult[irec,ibeam])
+                datamult[irec,b_idx]=sp.sqrt(powmult[irec,ibpos])
 
         outraw= rawsamps*datamult
         timep =  pulse_times.reshape(nrecs*np_rec)
@@ -164,12 +166,12 @@ def SRIRAW2iono(flist,outdir):
             
         outdict['RawData']=outraw.reshape(nrecs*np_rec,nrng)
         outdict['RawDatanonoise'] = outdict['RawData']
-        outdict['AddedNoise'] = (1./sp.sqrt(2.))*(sp.randn(outdict['RawData'].shape)+1j*sp.randn(outdict['RawData'].shape))
+        outdict['AddedNoise'] = (1./sp.sqrt(2.))*(sp.randn(*outdict['RawData'].shape)+1j*sp.randn(*outdict['RawData'].shape))
         outdict['NoiseData'] = noise_acf_out.reshape(nrecs*nbeams,nnrng,nlags)
         outdict['Beams']= beamn
         outdict['Time'] =timep
         outdict['Pulses']= pulsen
-
+#
         fname = '{0:d} RawData.h5'.format(ifile)
         newfn = os.path.join(radardatadir,fname)
         outfilelist.append(newfn)
@@ -177,10 +179,10 @@ def SRIRAW2iono(flist,outdir):
         pulsenumbers.append(pulsen)
         beam_list_all.append(beamn)
         dict2h5(newfn,outdict)
-    # save the information file
+#    # save the information file
     infodict = {'Files':outfilelist,'Time':pulsetimes,'Beams':beam_list_all,'Pulses':pulsenumbers}
     dict2h5(os.path.join(outdir,'INFO.h5'),infodict)
-
+#
     rng_vec = acfrng*1e-3
     ts = fullfiledict['/Rx']['SampleTime']
     sumrule = makesumrule('long',fullfiledict['/S/Data']['Pulsewidth'],ts)
@@ -188,8 +190,7 @@ def SRIRAW2iono(flist,outdir):
     maxrg = len(rng_vec)-sumrule[1].max()
     rng_lims = [rng_vec[minrg],rng_vec[maxrg]]# limits of the range gates
     IPP = .0087 #interpulse period in seconds
-
-
+#
     simparams =   {'IPP':IPP, #interpulse period
                    'TimeLim':time[-1,1], # length of simulation
                    'RangeLims':rng_lims, # range swath limit
@@ -205,15 +206,16 @@ def SRIRAW2iono(flist,outdir):
                    'dtype':sp.complex128, #type of numbers used for simulation
                    'ambupsamp':1, # up sampling factor for ambiguity function
                    'species':['O+','e-'], # type of ion species used in simulation
-                   'numpoints':128} # number of points for each spectrum
-    makeconfigfile(os.path.join(outdir,beamlist,radarname,simparams)
-    (sensdict,simparams) = makeparamdicts(beamlist,radarname,simparams)
-#    simparams['Rangegates'] =rng_vec
-#    simparams['Rangegatesfinal']=rng_vec[minrg:maxrg]
+                   'numpoints':128,
+                   'startfile':'startfile.h5'
+                   } # number of points for each spectrum
+    makeconfigfile(os.path.join(outdir,'sriconfig1.ini'),beamlist,radarname,simparams)
 
 
 def SRIACF2iono(flist):
-    """ This will take the ACF files and save them as Ionofiles"""
+    """ 
+        This will take the ACF files and save them as Ionofiles
+    """
 
                    
     for iflistn, iflist in enumerate(flist):
