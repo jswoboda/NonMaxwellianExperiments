@@ -81,7 +81,7 @@ def SRIRAW2iono(flist,outdir):
         os.mkdir(outdir)
     radardatdir = os.path.join(outdir,'Radardata')
 
-    if not  os.path.isdir(radardatadir):
+    if not os.path.isdir(radardatadir):
         os.mkdir(radardatadir)
     pulsetimes=[]
     outfilelist = []
@@ -211,8 +211,11 @@ def SRIRAW2iono(flist,outdir):
 #    simparams['Rangegates'] =rng_vec
 #    simparams['Rangegatesfinal']=rng_vec[minrg:maxrg]
 
+
 def SRIACF2iono(flist):
     """ This will take the ACF files and save them as Ionofiles"""
+
+                   
     for iflistn, iflist in enumerate(flist):
 
         for ifile,filename in enumerate(iflist):
