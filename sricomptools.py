@@ -167,7 +167,7 @@ def SRIRAW2iono(flist,outdir):
         outdict['RawData']=outraw.reshape(nrecs*np_rec,nrng)
         outdict['RawDatanonoise'] = outdict['RawData']
         outdict['AddedNoise'] = (1./sp.sqrt(2.))*(sp.randn(*outdict['RawData'].shape)+1j*sp.randn(*outdict['RawData'].shape))
-        outdict['NoiseData'] = noise_acf_out.reshape(nrecs*nbeams,nnrng,nlags)
+        outdict['NoiseDataACF'] = noise_acf_out.reshape(nrecs*nbeams,nnrng,nlags)
         outdict['Beams']= beamn
         outdict['Time'] =timep
         outdict['Pulses']= pulsen
