@@ -72,7 +72,7 @@ def SRIparams2iono(filename):
                           paramnames = pnames,species=species)
     return iono1,ionoS
 
-def SRIRAW2iono(flist,outdir):
+def SRIRAW2iono(flist,outdir,inttime=5*60.):
     """ 
         This will take a list of files and save out radar data
     """
@@ -88,6 +88,7 @@ def SRIRAW2iono(flist,outdir):
     outfilelist = []
     pulsenumbers = []
     beam_list_all = []
+    noisetimes=[]
     for ifile,filename in enumerate(flist):
         outdict={}
         fullfile = h5file(filename)
@@ -167,9 +168,11 @@ def SRIRAW2iono(flist,outdir):
         outdict['RawData']=outraw.reshape(nrecs*np_rec,nrng)
         outdict['RawDatanonoise'] = outdict['RawData']
         outdict['AddedNoise'] = (1./sp.sqrt(2.))*(sp.randn(*outdict['RawData'].shape)+1j*sp.randn(*outdict['RawData'].shape))
-        outdict['NoiseDataACF'] = noise_acf_out.reshape(nrecs*nbeams,nnrng,nlags)
+        outdict['NoiseDataACF'] = noise_acf_out
+        outdict['BeamsNoise'] = bco[0]
         outdict['Beams']= beamn
         outdict['Time'] =timep
+        outdict['NoiseTime'] = time
         outdict['Pulses']= pulsen
 #
         fname = '{0:d} RawData.h5'.format(ifile)
@@ -177,10 +180,11 @@ def SRIRAW2iono(flist,outdir):
         outfilelist.append(newfn)
         pulsetimes.append(timep)
         pulsenumbers.append(pulsen)
+        noisetimes.append(time)
         beam_list_all.append(beamn)
         dict2h5(newfn,outdict)
 #    # save the information file
-    infodict = {'Files':outfilelist,'Time':pulsetimes,'Beams':beam_list_all,'Pulses':pulsenumbers}
+    infodict = {'Files':outfilelist,'Time':pulsetimes,'Beams':beam_list_all,'Pulses':pulsenumbers,'NoiseTime':noisetimes}
     dict2h5(os.path.join(outdir,'INFO.h5'),infodict)
 #
     rng_vec = acfrng*1e-3
@@ -199,9 +203,9 @@ def SRIRAW2iono(flist,outdir):
                    'FitType' :'acf',
                    't_s': ts,
                    'Pulsetype':'long', # type of pulse can be long or barker,
-                   'Tint':time[0,1]-time[0,0], #Integration time for each fitting
-                   'Fitinter':time[1,0]-time[0,0], # time interval between fitted params
-                   'NNs': 100,# number of noise samples per pulse
+                   'Tint':inttime, #Integration time for each fitting
+                   'Fitinter':inttime, # time interval between fitted params
+                   'NNs': nnrng+nlags,# number of noise samples per pulse
                    'NNp':100, # number of noise pulses
                    'dtype':sp.complex128, #type of numbers used for simulation
                    'ambupsamp':1, # up sampling factor for ambiguity function
