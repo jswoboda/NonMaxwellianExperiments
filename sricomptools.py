@@ -72,9 +72,16 @@ def SRIparams2iono(filename):
                           paramnames = pnames,species=species)
     return iono1,ionoS
 
-def SRIRAW2iono(flist,outdir,inttime=5*60.):
+def SRIRAW2iono(flist,outdir,desrange=[100.,650.],inttime=5*60.):
     """ 
         This will take a list of files and save out radar data
+        Inputs
+            flist - A list of files that will read and turned into the format 
+                for the simulator.
+            outdir - The directory that that will hold the data in the format
+                from radardatasim. A directory will be created called RadarData
+                and the data will be saved there.
+            inttime - The number of seconds for the integration time.
     """
 
     # make directory structure
@@ -110,22 +117,29 @@ def SRIRAW2iono(flist,outdir,inttime=5*60.):
         fullfile = h5file(filename)
         fullfiledict = fullfile.readWholeh5file()
         print('Main file being operated on: '+os.path.split(filename)[-1])
-        # pull content that will be deleted
+        
+        acflags = fullfiledict['/S/Data/Acf']['Lags'].flatten()
+        nlags = len(acflags)
+        lagdown = -sp.arange(1,sp.floor(float(nlags)/2.)).astype(int)
+        lagup = sp.arange(1,sp.ceil(float(nlags)/2.)).astype(int)
+        # Get the raw samples
         all_data = fullfiledict['/Raw11/Raw/Samples']['Data']
+        rawrange = fullfiledict['/Raw11/Raw/Samples']['Range'][0]*1e-3
+        rngkeep= sp.where(sp.logical_and(rawrange>=desrange[0],rawrange<desrange[1]))[0]
+        
+        rngkeep = sp.hstack((lagdown+rngkeep[0],rngkeep,lagup+rngkeep[-1]))
+        rawrange=rawrange[rngkeep]
         pulse_times = fullfiledict['/Raw11/Raw/RadacHeader']['RadacTime']
         rawsamps = all_data[:,:,:,0]+1j*all_data[:,:,:,1]
+        rawsamps = rawsamps[:,:,rngkeep]
         (nrecs,  np_rec,nrng)=rawsamps.shape
-        rng = fullfiledict['/S/Data/Acf']['Range']
-        acfrng = fullfiledict['/S/Data/Acf']['Range'].flatten()
+        
         all_beams_mat = fullfiledict['/Raw11/Raw/RadacHeader']['BeamCode']
 #        
-        txbaud = fullfiledict['/S/Data']['TxBaud']
-        ambfunc = fullfiledict['/S/Data']['Ambiguity']
         pwidth = fullfiledict['/S/Data']['Pulsewidth']
 #        
 #        # Pull in call and noise material because these will needed for fitting
         beamcodes_cal = fullfiledict['/S/Cal']['Beamcodes']
-        beamcodes_noise = fullfiledict['/S/Noise']['Beamcodes']
         cal_pint = fullfiledict['/S/Cal']['PulsesIntegrated']
         caldata = fullfiledict['/S/Cal/Power']['Data']
         noise_pint = fullfiledict['/S/Noise']['PulsesIntegrated']
@@ -184,10 +198,10 @@ def SRIRAW2iono(flist,outdir,inttime=5*60.):
         beam_list_all.append(beamn)
         dict2h5(newfn,outdict)
 #    # save the information file
-    infodict = {'Files':outfilelist,'Time':pulsetimes,'Beams':beam_list_all,'Pulses':pulsenumbers,'NoiseTime':noisetimes}
-    dict2h5(os.path.join(outdir,'INFO.h5'),infodict)
+    infodict = {'Files':outfilelist,'Time':pulsetimes,'Beams':beam_list_all,'Pulses':pulsenumbers,'NoiseTime':noisetimes,'Range':rawrange}
+    dict2h5(os.path.join(radardatadir,'INFO.h5'),infodict)
 #
-    rng_vec = acfrng*1e-3
+    rng_vec = rawrange
     ts = fullfiledict['/Rx']['SampleTime']
     sumrule = makesumrule('long',fullfiledict['/S/Data']['Pulsewidth'],ts)
     minrg = -sumrule[0].min()
