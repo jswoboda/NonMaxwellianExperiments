@@ -72,7 +72,7 @@ def SRIparams2iono(filename):
                           paramnames = pnames,species=species)
     return iono1,ionoS
 
-def SRIRAW2iono(flist,outdir,desrange=[100.,650.],inttime=5*60.):
+def SRIRAW2iono(flist,outdir,desrange=[100.,650.],inttime=5*60.,timelim=1200.):
     """ 
         This will take a list of files and save out radar data
         Inputs
@@ -120,8 +120,8 @@ def SRIRAW2iono(flist,outdir,desrange=[100.,650.],inttime=5*60.):
         
         acflags = fullfiledict['/S/Data/Acf']['Lags'].flatten()
         nlags = len(acflags)
-        lagdown = -sp.arange(1,sp.floor(float(nlags)/2.)).astype(int)
-        lagup = sp.arange(1,sp.ceil(float(nlags)/2.)).astype(int)
+        lagdown = sp.arange(-sp.floor(float(nlags-1)/2.),0).astype(int)
+        lagup = sp.arange(1,sp.ceil(float(nlags+1)/2.)).astype(int)
         # Get the raw samples
         all_data = fullfiledict['/Raw11/Raw/Samples']['Data']
         rawrange = fullfiledict['/Raw11/Raw/Samples']['Range'][0]*1e-3
@@ -136,7 +136,7 @@ def SRIRAW2iono(flist,outdir,desrange=[100.,650.],inttime=5*60.):
         
         all_beams_mat = fullfiledict['/Raw11/Raw/RadacHeader']['BeamCode']
 #        
-        pwidth = fullfiledict['/S/Data']['Pulsewidth']
+        pwidth = float(fullfiledict['/S/Data']['Pulsewidth'])
 #        
 #        # Pull in call and noise material because these will needed for fitting
         beamcodes_cal = fullfiledict['/S/Cal']['Beamcodes']
@@ -151,7 +151,7 @@ def SRIRAW2iono(flist,outdir,desrange=[100.,650.],inttime=5*60.):
 #        
         # use median to avoid large jumps. The difference between the mean and median estimator
         # goes to zero after enough pulses have been originally integrated. From what Im seeing you're
-        # close to 64 you should be fine.
+        # close to 64 pulses integrated you this will be off by only a 1/2 % of the true value.
         n_pow_e = sp.nanmedian(noise_pwer,axis=-1)/noise_pint
         
         c_pow_e = sp.nanmedian(caldata,axis=-1)/cal_pint
@@ -201,16 +201,17 @@ def SRIRAW2iono(flist,outdir,desrange=[100.,650.],inttime=5*60.):
     infodict = {'Files':outfilelist,'Time':pulsetimes,'Beams':beam_list_all,'Pulses':pulsenumbers,'NoiseTime':noisetimes,'Range':rawrange}
     dict2h5(os.path.join(radardatadir,'INFO.h5'),infodict)
 #
-    rng_vec = rawrange
     ts = fullfiledict['/Rx']['SampleTime']
     sumrule = makesumrule('long',fullfiledict['/S/Data']['Pulsewidth'],ts)
-    minrg = -sumrule[0].min()
-    maxrg = len(rng_vec)-sumrule[1].max()
-    rng_lims = [rng_vec[minrg],rng_vec[maxrg]]# limits of the range gates
+#    minrg = -sumrule[0].min()
+#    maxrg = len(rng_vec)-sumrule[1].max()
+    maxrg = len(rawrange)+sumrule[0].min()
+    minrg = sumrule[1].max()
+    rng_lims = [rawrange[minrg],rawrange[maxrg]]# limits of the range gates
     IPP = .0087 #interpulse period in seconds
-#
+#   
     simparams =   {'IPP':IPP, #interpulse period
-                   'TimeLim':time[-1,1], # length of simulation
+                   'TimeLim':timelim, # length of simulation
                    'RangeLims':rng_lims, # range swath limit
 #                   'Pulse':pulse, # pulse shape
                    'Pulselength':pwidth,
@@ -219,7 +220,7 @@ def SRIRAW2iono(flist,outdir,desrange=[100.,650.],inttime=5*60.):
                    'Pulsetype':'long', # type of pulse can be long or barker,
                    'Tint':inttime, #Integration time for each fitting
                    'Fitinter':inttime, # time interval between fitted params
-                   'NNs': nnrng+nlags,# number of noise samples per pulse
+                   'NNs': nnrng+nlags-1,# number of noise samples per pulse
                    'NNp':100, # number of noise pulses
                    'dtype':sp.complex128, #type of numbers used for simulation
                    'ambupsamp':1, # up sampling factor for ambiguity function
@@ -228,8 +229,6 @@ def SRIRAW2iono(flist,outdir,desrange=[100.,650.],inttime=5*60.):
                    'startfile':'startfile.h5'
                    } # number of points for each spectrum
     makeconfigfile(os.path.join(outdir,'sriconfig1.ini'),beamlist,radarname,simparams)
-
-
 def SRIACF2iono(flist):
     """ 
         This will take the ACF files and save them as Ionofiles
