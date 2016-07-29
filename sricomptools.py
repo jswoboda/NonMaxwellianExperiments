@@ -170,9 +170,11 @@ def SRIRAW2iono(flist,outdir,desrange=[100.,650.],inttime=5*60.,timelim=1200.):
         outraw= rawsamps*datamult
         timep =  pulse_times.reshape(nrecs*np_rec)
         beamn = all_beams_mat.reshape(nrecs*np_rec)
+        beamnrs = sp.zeros_like(beamn)
         pulsen = sp.ones(beamn.shape,dtype=sp.int32)
         for ibn, ibeam in enumerate(beamlist):
             curlocs = sp.where(beamn==ibeam)[0]
+            beamnrs[curlocs] = ibn
             curtime = timep[curlocs]
             cursort = sp.argsort(curtime)
             curlocs_sort = curlocs[cursort]
@@ -184,7 +186,7 @@ def SRIRAW2iono(flist,outdir,desrange=[100.,650.],inttime=5*60.,timelim=1200.):
         outdict['AddedNoise'] = (1./sp.sqrt(2.))*(sp.randn(*outdict['RawData'].shape)+1j*sp.randn(*outdict['RawData'].shape))
         outdict['NoiseDataACF'] = noise_acf_out
         outdict['BeamsNoise'] = bco[0]
-        outdict['Beams']= beamn
+        outdict['Beams']= beamnrs
         outdict['Time'] =timep
         outdict['NoiseTime'] = time
         outdict['Pulses']= pulsen
@@ -195,7 +197,7 @@ def SRIRAW2iono(flist,outdir,desrange=[100.,650.],inttime=5*60.,timelim=1200.):
         pulsetimes.append(timep)
         pulsenumbers.append(pulsen)
         noisetimes.append(time)
-        beam_list_all.append(beamn)
+        beam_list_all.append(beamnrs)
         dict2h5(newfn,outdict)
 #    # save the information file
     infodict = {'Files':outfilelist,'Time':pulsetimes,'Beams':beam_list_all,'Pulses':pulsenumbers,'NoiseTime':noisetimes,'Range':rawrange}
