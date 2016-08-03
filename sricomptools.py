@@ -155,11 +155,12 @@ def SRIRAW2iono(flist,outdir,desrange=[100.,650.],inttime=5*60.,timelim=1200.):
         n_pow_e = sp.nanmedian(noise_pwer,axis=-1)/noise_pint
         
         c_pow_e = sp.nanmedian(caldata,axis=-1)/cal_pint
-
+        
         # Need to adjust for cal and noise
         powmult = Pcal/(c_pow_e-n_pow_e)
         noise_mult = sp.tile(powmult[:,:,sp.newaxis,sp.newaxis],noise_acf2.shape[2:])
-        noise_acf_out = noise_acf2*noise_mult
+        npint_mat = sp.tile(noise_pint[:,:,sp.newaxis,sp.newaxis],noise_acf2.shape[2:])
+        noise_acf_out = noise_acf2*noise_mult/npint_mat
         datamult = sp.zeros_like(rawsamps)
         
         for irec,ibeamlist in enumerate(beamcodes_cal):
