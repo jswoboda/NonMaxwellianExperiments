@@ -24,6 +24,7 @@ def plotdata(ionofile_in,ionofile_fit,madfile,time1):
     axvec = axmat.flatten()
     paramlist = ['ne','te','ti','vo']
     paramlisti = ['Ne','Te','Ti','Vi']
+    boundlist = [[0.,7e11],[500.,3200.],[500.,2500.],[-500.,500.]]
     IonoF = IonoContainer.readh5(ionofile_fit)
     IonoI = IonoContainer.readh5(ionofile_in)
     gfit = GeoData(readIono,[IonoF,'spherical'])
@@ -33,14 +34,28 @@ def plotdata(ionofile_in,ionofile_fit,madfile,time1):
     data1.data['dne']=sp.power(10.,data1.data['dnel'])
     handlist = []
     for inum,iax in enumerate(axvec):
-        ploth = rangevsparam(data1,data1.dataloc[0,1:],time1,gkey=paramlist[inum],gkeyerr='d'+paramlist[inum],fig=fig1,ax=iax,it=False)
+        ploth = rangevsparam(data1,data1.dataloc[0,1:],time1,gkey=paramlist[inum],fig=fig1,ax=iax,it=False)
         handlist.append(ploth)
         ploth = rangevsparam(ginp,ginp.dataloc[0,1:],0,gkey=paramlisti[inum],fig=fig1,ax=iax,it=False)
         handlist.append(ploth)
-        ploth = rangevsparam(gfit,gfit.dataloc[0,1:],0,gkey=paramlisti[inum],gkeyerr='n'+paramlisti[inum],fig=fig1,ax=iax,it=False)
+        ploth = rangevsparam(gfit,gfit.dataloc[0,1:],0,gkey=paramlisti[inum],fig=fig1,ax=iax,it=False)
         handlist.append(ploth)
-
-    return (fig1,axvec,handlist)
+        iax.set_xlim(boundlist[inum])
+    # with error bars
+    fig1.suptitle('Comparison Without Error Bars')
+    fig2,axmat2 =plt.subplots(2,2)
+    axvec2 = axmat2.flatten()
+    handlist2 = []
+    for inum,iax in enumerate(axvec2):
+        ploth = rangevsparam(data1,data1.dataloc[0,1:],time1,gkey=paramlist[inum],gkeyerr='d'+paramlist[inum],fig=fig2,ax=iax,it=False)
+        handlist2.append(ploth)
+        ploth = rangevsparam(ginp,ginp.dataloc[0,1:],0,gkey=paramlisti[inum],fig=fig2,ax=iax,it=False)
+        handlist2.append(ploth)
+        ploth = rangevsparam(gfit,gfit.dataloc[0,1:],0,gkey=paramlisti[inum],gkeyerr='n'+paramlisti[inum],fig=fig2,ax=iax,it=False)
+        handlist2.append(ploth)
+        iax.set_xlim(boundlist[inum])
+    fig2.suptitle('Comparison With Error Bars')
+    return (fig1,axvec,handlist,fig2,axvec2,handlist2)
 def configfilesetup(testpath,npulses = 1400):
     """ This will create the configureation file given the number of pulses for 
         the test. This will make it so that there will be 12 integration periods 
@@ -75,12 +90,11 @@ def makedata(testpath,tint):
     finalpath = os.path.join(testpath,'Origparams')
     if not os.path.isdir(finalpath):
         os.mkdir(finalpath)
-    data = sp.array([[1e11,1100.],[1e11,2100.]])
-    z = sp.linspace(50.,750,100)
+    z = sp.linspace(50.,750,150)
     nz = len(z)
-    Z_0 = 230.
+    Z_0 = 250.
     H_0=30.
-    N_0=7.5e11
+    N_0=6.5e11
     c1 = Chapmanfunc(z,H_0,Z_0,N_0)+5e10
     z0=100.
     T0=600.
@@ -147,10 +161,10 @@ if __name__== '__main__':
              This script will perform the basic run est for ISR sim.
             '''
     p = ArgumentParser(description=descr)
-    
-    p.add_argument("-p", "--npulses",help='Number of pulses.',type=int,default=100)
+    p.add_argument('-b',"--basedir",help='The base directory for the stuff.')
+    p.add_argument("-p", "--npulses",help='Number of pulses.',type=int,default=1400)
     p.add_argument('-f','--funclist',help='Functions to be uses',nargs='+',default=['spectrums','radardata','fitting','analysis'])#action='append',dest='collection',default=['spectrums','radardata','fitting','analysis'])
     
     p = p.parse_args()
-    main(p.npulses,p.funclist)
+    main(p.basedir,p.npulses,p.funclist)
    
