@@ -8,6 +8,7 @@ This script will be used to see if any changes will prevent the simulator from r
 import os,inspect
 import scipy as sp
 import matplotlib.pyplot as plt
+import scipy.fftpack as scfft
 import pdb
 from RadarDataSim.utilFunctions import readconfigfile,makeconfigfile,TempProfile,Chapmanfunc
 from RadarDataSim.IonoContainer import IonoContainer
@@ -20,7 +21,7 @@ from GeoData.plotting import rangevsparam
 def plotdata(ionofile_in,ionofile_fit,madfile,time1):
 
 
-    fig1,axmat =plt.subplots(2,2)
+    fig1,axmat =plt.subplots(2,2,facecolor='w',figsize=(10,10))
     axvec = axmat.flatten()
     paramlist = ['ne','te','ti','vo']
     paramlisti = ['Ne','Te','Ti','Vi']
@@ -32,30 +33,83 @@ def plotdata(ionofile_in,ionofile_fit,madfile,time1):
     data1 = GeoData(readMad_hdf5,[madfile,['nel','te','ti','vo','dnel','dte','dti','dvo']])
     data1.data['ne']=sp.power(10.,data1.data['nel'])
     data1.data['dne']=sp.power(10.,data1.data['dnel'])
+    
+    t1,t2 = data1.timelisting()[340]
     handlist = []
     for inum,iax in enumerate(axvec):
         ploth = rangevsparam(data1,data1.dataloc[0,1:],time1,gkey=paramlist[inum],fig=fig1,ax=iax,it=False)
-        handlist.append(ploth)
+        handlist.append(ploth[0])
         ploth = rangevsparam(ginp,ginp.dataloc[0,1:],0,gkey=paramlisti[inum],fig=fig1,ax=iax,it=False)
-        handlist.append(ploth)
+        handlist.append(ploth[0])
         ploth = rangevsparam(gfit,gfit.dataloc[0,1:],0,gkey=paramlisti[inum],fig=fig1,ax=iax,it=False)
-        handlist.append(ploth)
+        handlist.append(ploth[0])
         iax.set_xlim(boundlist[inum])
+    
     # with error bars
-    fig1.suptitle('Comparison Without Error Bars')
-    fig2,axmat2 =plt.subplots(2,2)
+    plt.tight_layout()
+    fig1.suptitle('Comparison Without Error Bars\nPFISR Data Times: {0} to {1}'.format(t1,t2))
+    plt.subplots_adjust(top=0.9)
+    plt.figlegend( handlist[:3], ['PFISR', 'Sim Input','Sim Fit'], loc = 'lower center', ncol=5, labelspacing=0. )
+    fig2,axmat2 =plt.subplots(2,2,facecolor='w',figsize=(10,10))
     axvec2 = axmat2.flatten()
     handlist2 = []
     for inum,iax in enumerate(axvec2):
         ploth = rangevsparam(data1,data1.dataloc[0,1:],time1,gkey=paramlist[inum],gkeyerr='d'+paramlist[inum],fig=fig2,ax=iax,it=False)
-        handlist2.append(ploth)
+        handlist2.append(ploth[0])
         ploth = rangevsparam(ginp,ginp.dataloc[0,1:],0,gkey=paramlisti[inum],fig=fig2,ax=iax,it=False)
-        handlist2.append(ploth)
+        handlist2.append(ploth[0])
         ploth = rangevsparam(gfit,gfit.dataloc[0,1:],0,gkey=paramlisti[inum],gkeyerr='n'+paramlisti[inum],fig=fig2,ax=iax,it=False)
-        handlist2.append(ploth)
+        handlist2.append(ploth[0])
         iax.set_xlim(boundlist[inum])
-    fig2.suptitle('Comparison With Error Bars')
+    plt.tight_layout()
+    fig2.suptitle('Comparison With Error Bars\nPFISR Data Times: {0} to {1}'.format(t1,t2))
+    plt.subplots_adjust(top=0.9)
+    plt.figlegend( handlist2[:3], ['PFISR', 'Sim Input','Sim Fit'], loc = 'lower center', ncol=5, labelspacing=0. )
     return (fig1,axvec,handlist,fig2,axvec2,handlist2)
+    
+    
+def plotspectra(simfile,realfile,coords = [0.,0.,250.],timesim=0,timereal=345):
+    fmax=50e3
+    simiono=IonoContainer.readh5(simfile)
+    realiono=IonoContainer.readh5(realfile)
+    t1,t2 = realiono.timelisting()[timereal]
+    
+    fig1 =plt.figure(facecolor='w',figsize=(10,10))
+    ax0=plt.subplot2grid((2,2),(0,0))
+    ax1=plt.subplot2grid((2,2),(0,1))
+    ax2=plt.subplot2grid((2,2),(1,0),colspan=2)
+    
+    reald_closest=realiono.getclosest(coords)
+    real_lags=reald_closest[0][timereal]
+    sim_closest=simiono.getclosest(coords)
+    sim_lags=sim_closest[0][timesim]    
+    
+    Nlags = sp.minimum(len(sim_lags),len(real_lags))
+    l =sp.arange(Nlags)
+    Nspec=128
+    simspec = scfft.fftshift(scfft.fft(sim_lags[:Nlags],n=128)).real
+    realspec= scfft.fftshift(scfft.fft(real_lags[:Nlags],n=128)).real
+    f=1e-3*sp.arange(-sp.floor(float(Nspec)/2.),sp.ceil(float(Nspec)/2.)) * fmax/Nspec
+    handlist = []
+    
+    handlist.append(ax0.plot(l,real_lags[:Nlags].real,'b-',label='Real')[0])
+    handlist.append(ax0.plot(l,sim_lags[:Nlags].real,'r-',label='Sim')[0])
+    ax0.set_title('Real Part of ACF')
+    ax0.set_xlabel('Lag Number')
+    handlist.append(ax1.plot(l,real_lags[:Nlags].imag,'b-',label='Real')[0])
+    handlist.append(ax1.plot(l,sim_lags[:Nlags].imag,'r-',label='Sim')[0])
+    ax1.set_title('Imaginary Part of ACF')
+    ax1.set_xlabel('Lag Number')
+    
+    handlist.append(ax2.plot(f,realspec,'b-',label='Real')[0])
+    handlist.append(ax2.plot(f,simspec,'r-',label='Sim')[0])
+    ax2.set_title('Spectra')
+    ax2.set_xlabel('Frequency in kHz')
+    plt.figlegend( handlist[:2], ['PFISR', 'Sim'], loc = 'lower center', ncol=5, labelspacing=0. )
+
+    fig1.suptitle('Location: [{2} km,{3} km, {4} km] \nPFISR Data Times: {0} to {1}'.format(t1,t2,*coords))
+    plt.subplots_adjust(top=0.9)
+    return fig1,handlist
 def configfilesetup(testpath,npulses = 1400):
     """ This will create the configureation file given the number of pulses for 
         the test. This will make it so that there will be 12 integration periods 
@@ -96,7 +150,7 @@ def makedata(testpath,tint):
     H_0=30.
     N_0=6.5e11
     c1 = Chapmanfunc(z,H_0,Z_0,N_0)+5e10
-    z0=100.
+    z0=50.
     T0=600.
     Te,Ti = TempProfile(z,T0,z0)
     
