@@ -13,11 +13,11 @@ import matplotlib.pyplot as plt
 from matplotlib import rc
 import seaborn as sns
 from ISRSpectrum.ISRSpectrum import ISRSpectrum
-#from RadarDataSim.specfunctions import makefitsurf
-from RadarDataSim.utilFunctions import readconfigfile
-from RadarDataSim.IonoContainer import IonoContainer
-from RadarDataSim.analysisplots import analysisdump
-import RadarDataSim.runsim as runsim
+#from SimISR.specfunctions import makefitsurf
+from SimISR.utilFunctions import readconfigfile
+from SimISR.IonoContainer import IonoContainer
+from SimISR.analysisplots import analysisdump
+import SimISR.runsim as runsim
 from turn2geodata import fit2geodata
 from GeoData.GeoData import GeoData
 

@@ -5,7 +5,7 @@ Created on Tue Apr 14 18:06:56 2015
 @author: John Swoboda
 """
 import os, glob
-from RadarDataSim.IonoContainer import IonoContainer
+from SimISR.IonoContainer import IonoContainer
 from GeoData.GeoData import GeoData
 from GeoData.utilityfuncs import readIono
 if __name__ == "__main__":

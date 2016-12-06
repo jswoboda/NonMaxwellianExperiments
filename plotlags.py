@@ -12,7 +12,7 @@ import scipy as sp
 import numpy as np
 import seaborn as sns
 
-from RadarDataSim.IonoContainer import IonoContainer
+from SimISR.IonoContainer import IonoContainer
 
 
 if __name__== '__main__':

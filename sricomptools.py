@@ -7,10 +7,10 @@ Created on Tue Nov  3 15:38:50 2015
 import glob,os
 from ioclass import h5file
 import scipy as sp
-from RadarDataSim.radarData import lagdict2ionocont
-from RadarDataSim.utilFunctions import makeparamdicts, makesumrule, makeconfigfile, dict2h5
-from RadarDataSim.IonoContainer import IonoContainer
-from RadarDataSim.const.physConstants import v_Boltz
+from SimISR.radarData import lagdict2ionocont
+from SimISR.utilFunctions import makeparamdicts, makesumrule, makeconfigfile, dict2h5
+from SimISR.IonoContainer import IonoContainer
+from SimISR.const.physConstants import v_Boltz
 import pdb
 
 def SRIparams2iono(filename):

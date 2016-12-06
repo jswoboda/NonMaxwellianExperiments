@@ -10,10 +10,10 @@ import scipy as sp
 import matplotlib.pyplot as plt
 import scipy.fftpack as scfft
 import pdb
-from RadarDataSim.utilFunctions import readconfigfile,makeconfigfile,TempProfile,Chapmanfunc
-from RadarDataSim.IonoContainer import IonoContainer
-from  RadarDataSim.runsim import main as runsim 
-from RadarDataSim.analysisplots import analysisdump
+from SimISR.utilFunctions import readconfigfile,makeconfigfile,TempProfile,Chapmanfunc
+from SimISR.IonoContainer import IonoContainer
+from  SimISR.runsim import main as runsim 
+from SimISR.analysisplots import analysisdump
 from GeoData.utilityfuncs import readMad_hdf5,readIono
 from GeoData.GeoData import GeoData
 from GeoData.plotting import rangevsparam
@@ -178,12 +178,12 @@ def makedata(testpath,tint):
 def main(testpath,npulse = 1400 ,functlist = ['spectrums','radardata','fitting','analysis']):
     """ This function will call other functions to create the input data, config
         file and run the radar data sim. The path for the simulation will be 
-        created in the Testdata directory in the RadarDataSim module. The new
+        created in the Testdata directory in the SimISR module. The new
         folder will be called BasicTest. The simulation is a long pulse simulation
         will the desired number of pulses from the user.
         Inputs
             npulse - Number of pulses for the integration period, default==100.
-            functlist - The list of functions for the RadarDataSim to do.
+            functlist - The list of functions for the SimISR to do.
     """
     
         
