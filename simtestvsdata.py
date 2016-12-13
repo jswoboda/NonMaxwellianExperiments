@@ -25,6 +25,8 @@ def plotdata(ionofile_in,ionofile_fit,madfile,time1):
     axvec = axmat.flatten()
     paramlist = ['ne','te','ti','vo']
     paramlisti = ['Ne','Te','Ti','Vi']
+    paramlistiname = ['$N_e$','$T_e$','$T_i$','$V_i$']
+    paramunit = ['$m^{-3}$','$^\circ$ K','$^\circ$ K','m/s']
     boundlist = [[0.,7e11],[500.,3200.],[500.,2500.],[-500.,500.]]
     IonoF = IonoContainer.readh5(ionofile_fit)
     IonoI = IonoContainer.readh5(ionofile_in)
@@ -44,12 +46,13 @@ def plotdata(ionofile_in,ionofile_fit,madfile,time1):
         ploth = rangevsparam(gfit,gfit.dataloc[0,1:],0,gkey=paramlisti[inum],fig=fig1,ax=iax,it=False)
         handlist.append(ploth[0])
         iax.set_xlim(boundlist[inum])
-    
+        iax.set_ylabel('Altitude')
+        iax.set_xlabel(paramlistiname[inum]+' in '+paramunit[inum])
     # with error bars
     plt.tight_layout()
     fig1.suptitle('Comparison Without Error Bars\nPFISR Data Times: {0} to {1}'.format(t1,t2))
     plt.subplots_adjust(top=0.9)
-    plt.figlegend( handlist[:3], ['PFISR', 'Sim Input','Sim Fit'], loc = 'lower center', ncol=5, labelspacing=0. )
+    plt.figlegend( handlist[:3], ['PFISR', 'SimISR Input','SimISR Fit'], loc = 'lower center', ncol=5, labelspacing=0. )
     fig2,axmat2 =plt.subplots(2,2,facecolor='w',figsize=(10,10))
     axvec2 = axmat2.flatten()
     handlist2 = []
@@ -61,10 +64,12 @@ def plotdata(ionofile_in,ionofile_fit,madfile,time1):
         ploth = rangevsparam(gfit,gfit.dataloc[0,1:],0,gkey=paramlisti[inum],gkeyerr='n'+paramlisti[inum],fig=fig2,ax=iax,it=False)
         handlist2.append(ploth[0])
         iax.set_xlim(boundlist[inum])
+        iax.set_ylabel('Altitude')
+        iax.set_xlabel(paramlistiname[inum]+' in '+paramunit[inum])
     plt.tight_layout()
     fig2.suptitle('Comparison With Error Bars\nPFISR Data Times: {0} to {1}'.format(t1,t2))
     plt.subplots_adjust(top=0.9)
-    plt.figlegend( handlist2[:3], ['PFISR', 'Sim Input','Sim Fit'], loc = 'lower center', ncol=5, labelspacing=0. )
+    plt.figlegend( handlist2[:3], ['PFISR', 'SimISR Input','SimISR Fit'], loc = 'lower center', ncol=5, labelspacing=0. )
     return (fig1,axvec,handlist,fig2,axvec2,handlist2)
     
     
