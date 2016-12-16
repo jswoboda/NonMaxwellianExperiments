@@ -46,7 +46,7 @@ def plotdata(ionofile_in,ionofile_fit,madfile,time1):
         ploth = rangevsparam(gfit,gfit.dataloc[0,1:],0,gkey=paramlisti[inum],fig=fig1,ax=iax,it=False)
         handlist.append(ploth[0])
         iax.set_xlim(boundlist[inum])
-        iax.set_ylabel('Altitude')
+        iax.set_ylabel('Altitude in km')
         iax.set_xlabel(paramlistiname[inum]+' in '+paramunit[inum])
     # with error bars
     plt.tight_layout()
@@ -64,7 +64,7 @@ def plotdata(ionofile_in,ionofile_fit,madfile,time1):
         ploth = rangevsparam(gfit,gfit.dataloc[0,1:],0,gkey=paramlisti[inum],gkeyerr='n'+paramlisti[inum],fig=fig2,ax=iax,it=False)
         handlist2.append(ploth[0])
         iax.set_xlim(boundlist[inum])
-        iax.set_ylabel('Altitude')
+        iax.set_ylabel('Altitude in km')
         iax.set_xlabel(paramlistiname[inum]+' in '+paramunit[inum])
     plt.tight_layout()
     fig2.suptitle('Comparison With Error Bars\nPFISR Data Times: {0} to {1}'.format(t1,t2))
@@ -101,6 +101,8 @@ def plotspectra(simfile,realfile,coords = [0.,0.,250.],timesim=0,timereal=345):
     handlist.append(ax0.plot(l,sim_lags[:Nlags].real,'r-',label='Sim')[0])
     ax0.set_title('Real Part of ACF')
     ax0.set_xlabel('Lag Number')
+    ax0.set_ylabel('Amplitude')
+
     handlist.append(ax1.plot(l,real_lags[:Nlags].imag,'b-',label='Real')[0])
     handlist.append(ax1.plot(l,sim_lags[:Nlags].imag,'r-',label='Sim')[0])
     ax1.set_title('Imaginary Part of ACF')
@@ -110,7 +112,8 @@ def plotspectra(simfile,realfile,coords = [0.,0.,250.],timesim=0,timereal=345):
     handlist.append(ax2.plot(f,simspec,'r-',label='Sim')[0])
     ax2.set_title('Spectra')
     ax2.set_xlabel('Frequency in kHz')
-    plt.figlegend( handlist[:2], ['PFISR', 'Sim'], loc = 'lower center', ncol=5, labelspacing=0. )
+    ax2.set_ylabel('Amplitude')
+    plt.figlegend( handlist[:2], ['PFISR', 'SimISR'], loc = 'lower center', ncol=5, labelspacing=0. )
 
     fig1.suptitle('Location: [{2} km,{3} km, {4} km] \nPFISR Data Times: {0} to {1}'.format(t1,t2,*coords))
     plt.subplots_adjust(top=0.9)
